@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap");
+@import "leaflet/dist/leaflet.css";
+@theme {
+  --font-poppins: "Roboto", sans-serif;
+}
+@layer components {
+  .input {
+    @apply border rounded-lg px-3 py-2 text-sm text-gray-700 bg-gray-50
+           focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white w-full;
+  }
+}
