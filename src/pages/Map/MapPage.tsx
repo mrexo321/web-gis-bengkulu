@@ -1,91 +1,95 @@
-import { MapContainer, TileLayer, GeoJSON, useMapEvents } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import { useState, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  GeoJSON,
+  useMapEvents,
+  ZoomControl,
+} from "react-leaflet";
+import { useQuery } from "@tanstack/react-query";
+import { layerService } from "../../services/layerService";
+import environment from "../../config/environment";
+import { useNavigate } from "react-router-dom";
 
 const MapPage = () => {
   const [activeLayers, setActiveLayers] = useState([]);
-  const [geojsonData, setGeojsonData] = useState({});
+  const [geoCache, setGeoCache] = useState({}); // <--- CACHE AGAR TIDAK REFETCH
   const [coords, setCoords] = useState({ lat: 0, lng: 0 });
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPoint, setSelectedPoint] = useState(null);
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (selectedPoint) setSlideIndex(0);
+  }, [selectedPoint]);
+
+  console.log("selected point", selectedPoint);
 
   const center = [-3.8106, 102.2955];
 
-  // ====== LOAD SEMUA GEOJSON ======
-  useEffect(() => {
-    const layerFiles = [
-      "air_minum",
-      "drainase",
-      "energi",
-      "persampahan",
-      "prasarana_lain",
-      "pusat_pelayanan",
-      "sda",
-      "telekomunikasi",
-      "transportasi",
-      "zonasi",
-    ];
+  // FETCH LIST LAYER
+  const { data: layers } = useQuery({
+    queryKey: ["layers"],
+    queryFn: layerService.getAll,
+  });
 
-    Promise.all(
-      layerFiles.map((name) =>
-        fetch(`/data/${name}.json`)
-          .then((res) => res.json())
-          .then((data) => ({ name, data }))
-          .catch(() => {
-            console.warn(`⚠️ Gagal memuat ${name}.json`);
-            return null;
-          })
-      )
-    ).then((results) => {
-      const valid = results.filter(Boolean);
-      const mapData = Object.fromEntries(valid.map((r) => [r.name, r.data]));
-      setGeojsonData(mapData);
+  const layerList = useMemo(() => {
+    if (!Array.isArray(layers)) return [];
+
+    return layers.map((item) => {
+      const original = item?.name || "";
+
+      return {
+        id: item?.id ?? null,
+        key: original.replace(".json", "") || "",
+        file: original || "",
+        name: (original.replace(".json", "").replaceAll("_", " ") || "").trim(),
+        color: item?.color || "#ff0000",
+        geometryType: item.geometryType,
+      };
     });
-  }, []);
+  }, [layers]);
 
-  // ====== LIST LAYER ======
-  const layerList = useMemo(
-    () => [
-      { name: "Zonasi", key: "zonasi", category: "RDTR" },
-      { name: "Transportasi", key: "transportasi", category: "RTRW" },
-      { name: "Air Minum", key: "air_minum", category: "RTRW" },
-      { name: "Drainase", key: "drainase", category: "RTRW" },
-      { name: "Energi", key: "energi", category: "RTRW" },
-      { name: "Persampahan", key: "persampahan", category: "RTRW" },
-      { name: "Prasarana Lain", key: "prasarana_lain", category: "RTRW" },
-      { name: "Pusat Pelayanan", key: "pusat_pelayanan", category: "RTRW" },
-      { name: "SDA", key: "sda", category: "Peta Administrasi" },
-      { name: "Telekomunikasi", key: "telekomunikasi", category: "Lainnya" },
-    ],
-    []
-  );
+  // FETCH GEOJSON PER ID — TAPI PAKAI CACHE
+  const { data: geoData } = useQuery({
+    queryKey: ["active-layers", activeLayers],
+    enabled: activeLayers.length > 0,
+    queryFn: async () => {
+      const results = [];
 
-  // ====== WARNA PER LAYER ======
-  const getLayerColor = (key) => {
-    const colors = {
-      zonasi: "#8b5cf6",
-      transportasi: "#fb923c",
-      air_minum: "#38bdf8",
-      drainase: "#3b82f6",
-      energi: "#facc15",
-      persampahan: "#22c55e",
-      prasarana_lain: "#9ca3af",
-      pusat_pelayanan: "#ef4444",
-      sda: "#78350f",
-      telekomunikasi: "#ec4899",
-    };
-    return colors[key] || "#000";
-  };
+      for (const layer of activeLayers) {
+        // CEK CACHE DULU
+        if (geoCache[layer.id]) {
+          results.push(geoCache[layer.id]);
+          continue;
+        }
 
-  // ====== TOGGLE AKTIF / NONAKTIF ======
-  const toggleLayer = (key) =>
-    setActiveLayers((prev) =>
-      prev.includes(key) ? prev.filter((l) => l !== key) : [...prev, key]
-    );
+        // FETCH JIKA BELUM ADA DI CACHE
+        const geojson = await layerService.getSpecificLayer(layer.id);
+        const item = {
+          id: layer.id,
+          name: layer.name,
+          color: layer.color,
+          data: geojson.data || geojson,
+        };
 
-  const clearLayers = () => setActiveLayers([]);
+        // SIMPAN KE CACHE
+        setGeoCache((prev) => ({
+          ...prev,
+          [layer.id]: item,
+        }));
 
-  // ====== TRACK KOORDINAT ======
+        results.push(item);
+      }
+
+      return results;
+    },
+  });
+
+  // TRACK COORD
   const LocationTracker = () => {
     useMapEvents({
       mousemove: (e) => setCoords({ lat: e.latlng.lat, lng: e.latlng.lng }),
@@ -93,157 +97,422 @@ const MapPage = () => {
     return null;
   };
 
-  // ====== EVENT KLIK FEATURE ======
   const onEachFeature = (feature, layer, layerName) => {
     layer.on("click", () => {
-      const props = feature.properties || {};
-      const name = props.nama || layerName;
-      const desc =
-        props.deskripsi ||
-        `Informasi detail mengenai ${layerName}. Data bersifat ilustratif.`;
-      console.log(`🟢 Klik pada ${name}: ${desc}`);
+      const geomType = feature.geometry.type;
+
+      // Tentukan koordinat point-nya
+      let coords = null;
+      if (geomType === "Point") {
+        coords = layer.getLatLng();
+      } else {
+        // Ambil pusat geometrinya
+        const bounds = layer.getBounds();
+        const center = bounds.getCenter();
+        coords = { lat: center.lat, lng: center.lng };
+      }
+
+      // Standarisasi properti deskriptif
+      const p = feature.properties || {};
+
+      const detail = {
+        id: feature.id || null,
+        name: p.name || p.NAMA || "Tanpa nama",
+        description: p.DESKRIPSI || p.DESCRIPTION || p.REMARK || "-",
+        year: p.TAHUN || p.YEAR || "-",
+        regNumber: p.NO_REG || p.REGISTER || "-",
+        assetCode: p.KODE_ASET || p.ASET || "-",
+        condition: p.KONDISI || p.CONDITION || "-",
+        maintenanceBy: p.MAINTENANCE || p.DIPELIHARA_OLEH || "-",
+        category:
+          geomType === "Point"
+            ? "Point"
+            : geomType === "MultiLineString"
+            ? "Line"
+            : "Polygon",
+
+        // FIX DI SINI
+        meta: {
+          ...p,
+          geometryType: geomType, // <--- WAJIB
+        },
+
+        attachments: feature.attachments || [],
+        coords,
+      };
+
+      setSelectedPoint(detail);
     });
   };
 
-  // ====== FILTER LAYER (CARI) ======
-  const filteredLayers = useMemo(
-    () =>
-      layerList.filter((l) =>
-        l.name.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [searchTerm, layerList]
-  );
+  const filteredLayers = useMemo(() => {
+    return layerList.filter((l) =>
+      l.key.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, layerList]);
+
+  // TOGGLE LAYER — menggunakan object, bukan id
+  const toggleLayer = (layerObj) =>
+    setActiveLayers((prev) => {
+      const exists = prev.some((l) => l.id === layerObj.id);
+      return exists
+        ? prev.filter((l) => l.id !== layerObj.id)
+        : [...prev, layerObj];
+    });
+
+  const clearLayers = () => setActiveLayers([]);
 
   return (
-    <div className="relative w-full h-screen bg-gray-100 font-inter overflow-hidden">
-      {/* ===== MAP ===== */}
+    <div className="relative w-full h-screen bg-gray-100 overflow-hidden">
       <MapContainer
+        zoom={12.5}
+        zoomControl={false}
         center={center}
         zoom={12.5}
-        className="w-full h-full"
-        zoomControl={true}
+        className="w-full h-full z-0"
       >
+        <ZoomControl position="topright" />
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="© OpenStreetMap contributors"
         />
+
         <LocationTracker />
 
-        {/* Render Layer Aktif */}
-        {Object.entries(geojsonData).map(([name, data]) =>
-          activeLayers.includes(name) ? (
-            <GeoJSON
-              key={name}
-              data={data}
-              onEachFeature={(f, l) => onEachFeature(f, l, name)}
-              style={{
-                color: getLayerColor(name),
-                weight: 2,
-                fillOpacity: 0.4,
-              }}
-            />
-          ) : null
-        )}
+        {geoData?.map((layer) => (
+          <GeoJSON
+            key={layer.id}
+            data={layer.data}
+            style={{
+              color: layer.color,
+              weight: 2,
+            }}
+            onEachFeature={(f, l) => onEachFeature(f, l, layer.name)}
+          />
+        ))}
       </MapContainer>
 
-      {/* ===== HEADER ===== */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-white shadow-md rounded-full px-6 py-2 text-gray-800 font-semibold flex items-center gap-2 z-[1000] border border-gray-200">
-        <img src="/logo.png" alt="logo" className="w-5 h-5" />
-        <span>Kota Bengkulu</span>
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-white px-6 py-2 rounded-full shadow z-[5000]">
+        Database Aset Kota Bengkulu
       </div>
 
-      {/* ===== BUTTON KATALOG ===== */}
       <button
         onClick={() => setCatalogOpen(!catalogOpen)}
-        className="absolute top-3 right-4 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow z-[1100] text-sm font-medium flex items-center gap-2 transition-all duration-200"
+        className="absolute top-3 left-4 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow z-[5000]"
       >
         📚 Katalog Layer
       </button>
 
-      {/* ===== KOORDINAT ===== */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm text-xs px-4 py-1.5 rounded-full shadow border border-gray-200 z-[1000] font-medium text-gray-700">
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white px-4 py-1.5 rounded-full shadow text-xs z-[5000]">
         Latitude: {coords.lat} | Longitude: {coords.lng}
       </div>
 
-      {/* ===== SIDEBAR KATALOG ===== */}
       <div
-        className={`absolute top-0 right-0 h-full w-[350px] bg-white shadow-2xl z-[1500] transition-transform duration-300 ease-in-out ${
-          catalogOpen ? "translate-x-0" : "translate-x-full"
+        className={`absolute top-0 left-0 w-[350px] h-full bg-white shadow-2xl transition-all z-[6000] ${
+          catalogOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Header */}
-        <div className="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
-          <h2 className="font-semibold text-base">📚 Katalog Layer</h2>
-          <button
-            onClick={() => setCatalogOpen(false)}
-            className="text-white hover:text-red-300 text-lg font-bold"
-          >
-            ✕
-          </button>
+        <div className="bg-emerald-700 text-white px-5 py-4 flex justify-between">
+          <h2>📚 Katalog Layer</h2>
+          <button onClick={() => setCatalogOpen(false)}>✕</button>
         </div>
 
-        {/* Search */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b">
           <input
-            type="text"
+            className="w-full border px-3 py-2 rounded"
             placeholder="Cari layer..."
-            value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
           />
         </div>
 
-        {/* Daftar Layer */}
         <div className="p-4 overflow-y-auto h-[calc(100%-150px)] space-y-3">
-          {filteredLayers.length ? (
-            filteredLayers.map(({ name, key, category }) => {
-              const active = activeLayers.includes(key);
-              return (
-                <div
-                  key={key}
-                  onClick={() => toggleLayer(key)}
-                  className={`cursor-pointer border rounded-xl p-3 transition-all ${
-                    active
-                      ? "bg-emerald-50 border-emerald-500"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <h4
-                      className={`font-medium ${
-                        active ? "text-emerald-700" : "text-gray-800"
-                      }`}
-                    >
-                      {name}
-                    </h4>
-                    {active && <span className="text-emerald-600">✔️</span>}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    <span className="mr-2">📍 Kota Bengkulu</span>
-                    <span className="bg-gray-100 px-2 py-0.5 rounded">
-                      {category}
-                    </span>
-                  </div>
+          {filteredLayers.map((layer) => {
+            const active = activeLayers.some((l) => l.id === layer.id);
+            console.log("Layer", layer);
+
+            return (
+              <div
+                key={layer.id}
+                onClick={() => toggleLayer(layer)}
+                className={`p-3 rounded-xl border cursor-pointer ${
+                  active
+                    ? "bg-emerald-50 border-emerald-500"
+                    : "border-gray-200"
+                }`}
+              >
+                <div className="flex justify-between">
+                  <h4 className={active ? "text-emerald-700" : "text-gray-800"}>
+                    {layer.key}
+                  </h4>
+                  {active && <span>✔️</span>}
                 </div>
-              );
-            })
-          ) : (
-            <p className="text-gray-500 text-sm text-center mt-10">
-              Tidak ada layer ditemukan
-            </p>
-          )}
+                <div className="text-xs text-gray-500 mt-1">
+                  Tipe: {layer.geometryType}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Tombol Hapus Semua */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t">
           <button
             onClick={clearLayers}
-            className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-medium"
+            className="w-full bg-red-500 text-white py-2 rounded"
           >
             🗑️ Hapus Semua Layer
           </button>
         </div>
       </div>
+      {/* ===========================
+    MODAL DETAIL POINT
+=========================== */}
+      {/* =====================================================
+   DETAIL SIDEBAR (RIGHT DRAWER)
+===================================================== */}
+      {selectedPoint && (
+        <div className="fixed inset-0 z-[9500] flex">
+          {/* BACKDROP */}
+          <div
+            className="flex-1 bg-black/40 backdrop-blur-sm"
+            onClick={() => setSelectedPoint(null)}
+          />
+
+          {/* SIDEBAR */}
+          <div className="w-[380px] sm:w-[430px] h-full bg-white shadow-2xl animate-slideLeft overflow-y-auto">
+            {/* HEADER */}
+            <div className="px-5 py-4 bg-emerald-700 text-white flex justify-between items-center shadow">
+              <h2 className="text-lg font-semibold truncate">Detail Feature</h2>
+              <button
+                className="text-xl font-bold"
+                onClick={() => setSelectedPoint(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-6">
+              {/* =============================
+             1. TIPE FEATURE
+        ============================== */}
+              {/* <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                <h3 className="font-semibold text-emerald-700 mb-1">
+                  🧭 Tipe Geometri
+                </h3>
+                <p className="text-gray-700 text-sm">
+                  {selectedPoint.meta?.geometryType || "Point"}
+                </p>
+              </div> */}
+
+              {/* =============================
+             2. INFORMASI UTAMA
+        ============================== */}
+              <div>
+                <h3 className="font-semibold text-2xl text-gray-700 mb-2">
+                  📍 Informasi Utama
+                </h3>
+                <div className="bg-gray-50 border rounded-xl p-4 space-y-2 text-sm">
+                  <p>
+                    <span className="font-medium">Nama:</span>{" "}
+                    {selectedPoint.name}
+                  </p>
+                  <p>
+                    <span className="font-medium">Deskripsi:</span>{" "}
+                    {selectedPoint.description}
+                  </p>
+
+                  <p>
+                    <span className="font-medium">Tahun Dibuat:</span>{" "}
+                    {selectedPoint.year}
+                  </p>
+                  <p>
+                    <span className="font-medium">Nomor Registrasi:</span>{" "}
+                    {selectedPoint.regNumber}
+                  </p>
+                  <p>
+                    <span className="font-medium">Kode Aset:</span>{" "}
+                    {selectedPoint.assetCode}
+                  </p>
+                  <p>
+                    <span className="font-medium">Kondisi:</span>{" "}
+                    {selectedPoint.condition}
+                  </p>
+                  <p>
+                    <span className="font-medium">Maintenance oleh:</span>{" "}
+                    {selectedPoint.maintenanceBy}
+                  </p>
+
+                  {/* <p>
+                    <span className="font-medium">Kategori Geometri:</span>{" "}
+                    {selectedPoint.category}
+                  </p> */}
+                </div>
+              </div>
+
+              {/* =============================
+             3. DETAIL PROPERTI (AUTO RENDER)
+        ============================== */}
+              {/* <div>
+                <h3 className="font-semibold text-gray-700 mb-2">
+                  🗂 Semua Properti
+                </h3>
+
+                <div className="bg-white border rounded-xl p-4 space-y-3 text-sm">
+                  {Object.entries(selectedPoint.meta || {}).map(([k, v]) => (
+                    <div key={k} className="flex justify-between border-b pb-1">
+                      <span className="font-medium text-gray-600">{k}</span>
+                      <span className="text-gray-800">{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div> */}
+
+              {/* =============================
+             4. INFORMASI BERBEDA BERDASARKAN TIPE
+        ============================== */}
+              {/* <div>
+                <h3 className="font-semibold text-gray-700 mb-2">
+                  📐 Analisis Geometri
+                </h3>
+
+                {selectedPoint.meta?.geometryType === "LineString" && (
+                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-sm space-y-2">
+                    <p>
+                      <span className="font-medium">Panjang (dummy):</span> 1.42
+                      km
+                    </p>
+                    <p>
+                      <span className="font-medium">
+                        Jumlah titik koordinat:
+                      </span>{" "}
+                      16
+                    </p>
+                  </div>
+                )}
+
+                {selectedPoint.meta?.geometryType === "Polygon" && (
+                  <div className="bg-purple-50 border border-purple-200 p-4 rounded-xl text-sm space-y-2">
+                    <p>
+                      <span className="font-medium">Luas Area (dummy):</span>{" "}
+                      2.84 km²
+                    </p>
+                    <p>
+                      <span className="font-medium">Jumlah vertices:</span> 24
+                    </p>
+                  </div>
+                )}
+
+                {selectedPoint.meta?.geometryType === "Point" && (
+                  <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-sm space-y-2">
+                    <p>
+                      <span className="font-medium">Tipe:</span> Titik (Point)
+                    </p>
+                    <p>
+                      <span className="font-medium">Kategori:</span>{" "}
+                      {selectedPoint.meta?.TYPE || "Lokasi"}
+                    </p>
+                  </div>
+                )}
+              </div> */}
+
+              {/* =============================
+             5. KOORDINAT
+        ============================== */}
+              <div>
+                <h3 className="font-semibold text-2xl text-gray-700 mb-2">
+                  📍 Koordinat
+                </h3>
+                <div className="bg-gray-50 border rounded-xl p-4 text-sm space-y-2">
+                  <p>
+                    <span className="font-medium">Latitude:</span>{" "}
+                    {selectedPoint.coords.lat}
+                  </p>
+                  <p>
+                    <span className="font-medium">Longitude:</span>{" "}
+                    {selectedPoint.coords.lng}
+                  </p>
+                </div>
+              </div>
+
+              {/* =============================
+             6. SLIDER GAMBAR
+        ============================== */}
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-2">
+                  🖼 Lampiran Foto
+                </h3>
+
+                {selectedPoint.attachments?.length > 0 ? (
+                  <>
+                    <div className="relative">
+                      <img
+                        src={
+                          environment.IMAGE_URL +
+                          selectedPoint.attachments[slideIndex].file_url
+                        }
+                        className="w-full h-56 object-cover rounded-xl shadow"
+                      />
+
+                      {/* Prev */}
+                      <button
+                        onClick={() =>
+                          setSlideIndex((prev) =>
+                            prev === 0
+                              ? selectedPoint.attachments.length - 1
+                              : prev - 1
+                          )
+                        }
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow"
+                      >
+                        ◀
+                      </button>
+
+                      {/* Next */}
+                      <button
+                        onClick={() =>
+                          setSlideIndex((prev) =>
+                            prev === selectedPoint.attachments.length - 1
+                              ? 0
+                              : prev + 1
+                          )
+                        }
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow"
+                      >
+                        ▶
+                      </button>
+                    </div>
+
+                    {/* Dots */}
+                    <div className="flex justify-center mt-3 space-x-1">
+                      {selectedPoint.attachments.map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-2.5 w-2.5 rounded-full cursor-pointer ${
+                            slideIndex === i
+                              ? "bg-emerald-600 scale-110"
+                              : "bg-gray-300"
+                          }`}
+                          onClick={() => setSlideIndex(i)}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-gray-500 italic text-sm">
+                    Tidak ada gambar.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={() => navigate("/")}
+        className="absolute bottom-3 left-4 bg-white px-4 py-2 rounded-full shadow text-sm font-medium z-[5000] hover:bg-gray-100 transition"
+      >
+        ◀ Kembali
+      </button>
     </div>
   );
 };

@@ -14,14 +14,14 @@ const Sidebar = () => {
 
   const navLinks = [
     { name: "Dashboard", icon: Home, path: "/dashboard" },
-    { name: "Upload Data GIS", icon: Layers, path: "/gis-upload" },
+    // { name: "Upload Data GIS", icon: Layers, path: "/gis-upload" },
     { name: "Peta & Layer", icon: Map, path: "/map-layer" },
-    { name: "Laporan", icon: FileText, path: "/report" },
+    // { name: "Laporan", icon: FileText, path: "/report" },
   ];
 
   const footerLinks = [
-    { name: "Bantuan", icon: HelpCircle, path: "/bantuan" },
-    { name: "Pengaturan", icon: Settings, path: "/pengaturan" },
+    { name: "Bantuan", icon: HelpCircle, path: "/help" },
+    { name: "Pengaturan", icon: Settings, path: "/settings" },
   ];
 
   return (

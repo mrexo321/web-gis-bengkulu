@@ -1,264 +1,344 @@
-import React from "react";
+import React, { useState } from "react";
 import { MapPin, FileText, Users } from "lucide-react";
-
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import HomeLayout from "./layouts/HomeLayout";
+import { useQuery } from "@tanstack/react-query";
+import { layerService } from "./services/layerService";
 
 export default function Home() {
+  const { data: layer, isLoading } = useQuery({
+    queryKey: ["layers"],
+    queryFn: layerService.getAll,
+  });
+
+  const navigate = useNavigate();
+
+  console.log("layer", layer);
+
+  const [openProduk, setOpenProduk] = useState(null);
+  const [openGaleri, setOpenGaleri] = useState(null);
+
+  // Data dummy produk hukum
+  const produkHukumData = [
+    {
+      id: 1,
+      title: "Peraturan Wali Kota No 1 Tahun 2024",
+      desc: "Peraturan mengenai penataan ruang wilayah dan pengelolaan aset daerah Kota Bengkulu.",
+      fileUrl: "#",
+      thumbnail:
+        "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=600",
+    },
+    {
+      id: 2,
+      title: "Perda No 2 Tahun 2024",
+      desc: "Regulasi dasar perencanaan pengembangan kawasan strategis.",
+      fileUrl: "#",
+      thumbnail:
+        "https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=600",
+    },
+    {
+      id: 3,
+      title: "Peraturan Zonasi Tahun 2024",
+      desc: "Dokumen lengkap terkait aturan zonasi di seluruh wilayah Kota Bengkulu.",
+      fileUrl: "#",
+      thumbnail:
+        "https://images.pexels.com/photos/3184463/pexels-photo-3184463.jpeg?auto=compress&cs=tinysrgb&w=600",
+    },
+    {
+      id: 4,
+      title: "Peraturan Pemanfaatan Ruang Tahun 2024",
+      desc: "Peraturan yang mengatur pemanfaatan ruang publik dan kawasan strategis.",
+      fileUrl: "#",
+      thumbnail:
+        "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=600",
+    },
+  ];
+
+  // Dummy galeri
+  const galeriData = [
+    {
+      id: 1,
+      title: "Pemandangan Kota Bengkulu",
+      desc: "Panorama kota Bengkulu dari udara pada pagi hari.",
+      image:
+        "https://images.pexels.com/photos/1563256/pexels-photo-1563256.jpeg?auto=compress&cs=tinysrgb&w=600",
+    },
+    {
+      id: 2,
+      title: "Pantai Panjang",
+      desc: "Pantai ikonik Kota Bengkulu dengan garis pantai yang luas.",
+      image:
+        "https://images.pexels.com/photos/248797/pexels-photo-248797.jpeg?auto=compress&cs=tinysrgb&w=600",
+    },
+    {
+      id: 3,
+      title: "Alun-Alun Kota",
+      desc: "Area publik yang menjadi pusat kegiatan masyarakat Kota Bengkulu.",
+      image:
+        "https://images.pexels.com/photos/258045/pexels-photo-258045.jpeg?auto=compress&cs=tinysrgb&w=600",
+    },
+    {
+      id: 4,
+      title: "Jembatan Ikonik",
+      desc: "Infrastruktur kota yang menjadi lokasi favorit untuk fotografi.",
+      image:
+        "https://images.pexels.com/photos/462331/pexels-photo-462331.jpeg?auto=compress&cs=tinysrgb&w=600",
+    },
+  ];
+
   return (
     <div className="font-sans text-gray-800">
-      {/* Header */}
-      <header className="bg-white text-gray-800 text-lg">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/5/55/Lambang_Kota_Bengkulu.png"
-              alt="Logo Kota Bengkulu"
-              className="w-10 h-10"
-            />
-            <div>
-              <h1 className="text-lg font-bold">
-                Bengkulu Urban Planning Center
-              </h1>
-              <p className="text-sm text-blue-200">
-                Portal Resmi Tata Ruang Kota Bengkulu
-              </p>
-            </div>
-          </div>
-          <nav className="space-x-6 hidden md:block">
-            <Link to="#layanan" className="hover:text-blue-300">
-              Layanan
-            </Link>
-            <Link to="#berita" className="hover:text-blue-300">
-              Berita
-            </Link>
-            <Link to="/map" className="hover:text-blue-300">
-              Peta
-            </Link>
-            <Link to="/login" className="hover:text-blue-300">
-              Login
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <HomeLayout>
+        {/* ===============================
+        HERO SECTION
+    =============================== */}
+        <section className="relative bg-gradient-to-br from-blue-700 to-blue-900 text-white py-24 text-center overflow-hidden">
+          <div className="absolute inset-0 opacity-20 bg-[url('https://images.pexels.com/photos/356830/pexels-photo-356830.jpeg')] bg-cover bg-center"></div>
 
-      {/* Hero Section */}
-      <section className="relative bg-[#2451AB] text-white py-20 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4">
-            Selamat Datang di Portal Tata Ruang Kota Bengkulu
-          </h2>
-          <p className="text-blue-200 mb-8">
-            Akses informasi dan layanan perencanaan tata ruang secara digital
-            dengan mudah.
-          </p>
-          <button className="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-lg font-semibold">
-            Akses Layanan
-          </button>
-        </div>
-      </section>
-
-      {/* Profil Walikota */}
-      <section className="max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-2 gap-10 items-center">
-        <div>
-          <h3 className="text-2xl font-bold text-blue-900 mb-4">
-            Sambutan Walikota Bengkulu
-          </h3>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            Selamat datang di situs resmi Bengkulu Urban Planning Center. Kami
-            berkomitmen menghadirkan layanan tata ruang yang transparan,
-            efisien, dan berpihak pada pembangunan berkelanjutan.
-          </p>
-          <p className="font-semibold text-blue-800">
-            Lorem ipsum dolor sit amet, consectetur adipisicing elit. Esse,
-            dolorem!
-          </p>
-          <p className="text-sm text-gray-500">Walikota Bengkulu</p>
-        </div>
-        <div className="rounded-xl overflow-hidden shadow-lg">
-          <iframe
-            className="w-full h-64 md:h-80"
-            src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-            title="Video Sambutan Walikota"
-            allowFullScreen
-          ></iframe>
-        </div>
-      </section>
-
-      {/* Layanan Section */}
-      <section id="layanan" className="bg-blue-50 py-12">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h3 className="text-2xl font-bold text-blue-900 mb-8">
-            Layanan Tata Ruang Kota Bengkulu
-          </h3>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
-              <FileText className="w-10 h-10 text-blue-600 mx-auto mb-4" />
-              <h4 className="font-semibold mb-2">Layanan Utama</h4>
-              <p className="text-sm text-gray-600">
-                Akses dokumen dan pelayanan utama terkait tata ruang Kota
-                Bengkulu.
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
-              <MapPin className="w-10 h-10 text-blue-600 mx-auto mb-4" />
-              <h4 className="font-semibold mb-2">Peta Kota Bengkulu</h4>
-              <p className="text-sm text-gray-600">
-                Jelajahi peta interaktif dan rencana tata ruang kota secara
-                detail.
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
-              <Users className="w-10 h-10 text-blue-600 mx-auto mb-4" />
-              <h4 className="font-semibold mb-2">Interaksi Tata Ruang</h4>
-              <p className="text-sm text-gray-600">
-                Ikuti forum dan diskusi publik mengenai kebijakan tata ruang
-                Bengkulu.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Berita & Artikel */}
-      <section id="berita" className="py-12">
-        <div className="max-w-7xl mx-auto px-6">
-          <h3 className="text-2xl font-bold text-blue-900 mb-8 text-center">
-            Berita & Artikel
-          </h3>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-xl shadow hover:shadow-lg overflow-hidden"
-              >
-                <img
-                  loading="lazy"
-                  src={`https://images.pexels.com/photos/${
-                    15000 + i
-                  }/pexels-photo-${
-                    15000 + i
-                  }.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop`}
-                  alt="Berita Bengkulu"
-                  className="w-full h-40 object-cover"
-                />
-                <div className="p-5">
-                  <h4 className="font-semibold text-blue-800 mb-2">
-                    Sosialisasi Peraturan Tata Ruang Bengkulu {i}
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Pemerintah Kota Bengkulu mengadakan sosialisasi terkait RTRW
-                    dan pembangunan berkelanjutan.
-                  </p>
-                  <a
-                    href="#"
-                    className="text-blue-600 text-sm font-semibold hover:underline"
-                  >
-                    Baca Selengkapnya
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Produk Hukum */}
-      <section id="produk" className="bg-blue-50 py-12">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h3 className="text-2xl font-bold text-blue-900 mb-8">
-            Produk Hukum
-          </h3>
-          <div className="grid md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="bg-white p-6 rounded-xl shadow hover:shadow-lg"
-              >
-                <img
-                  loading="lazy"
-                  src={`https://images.pexels.com/photos/${
-                    20000 + i
-                  }/pexels-photo-${
-                    20000 + i
-                  }.jpeg?auto=compress&cs=tinysrgb&w=500&h=300&fit=crop`}
-                  alt="Produk Hukum"
-                  className="w-full h-24 object-cover rounded-lg mb-3"
-                />
-                <h4 className="font-semibold mb-2">
-                  Peraturan No {i} Tahun 2024
-                </h4>
-                <p className="text-sm text-gray-600 mb-3">
-                  Tentang Penataan Ruang Wilayah Kota Bengkulu.
-                </p>
-                <a
-                  href="#"
-                  className="text-blue-600 text-sm font-semibold hover:underline"
-                >
-                  Lihat Dokumen
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Galeri Foto */}
-      <section id="galeri" className="py-12">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h3 className="text-2xl font-bold text-blue-900 mb-8">Galeri Foto</h3>
-          <div className="grid md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <img
-                key={i}
-                loading="lazy"
-                src={`https://images.pexels.com/photos/${
-                  30000 + i
-                }/pexels-photo-${
-                  30000 + i
-                }.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop`}
-                alt={`Galeri Kota Bengkulu ${i}`}
-                className="rounded-lg shadow hover:opacity-90 transition"
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-blue-900 text-white py-10">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8">
-          <div>
-            <h4 className="font-semibold mb-3">Tentang Kami</h4>
-            <p className="text-sm text-blue-200">
-              Bengkulu Urban Planning Center adalah portal resmi informasi dan
-              layanan tata ruang Kota Bengkulu.
+          <div className="relative max-w-4xl mx-auto">
+            <h2 className="text-4xl md:text-6xl font-extrabold leading-tight">
+              Basis Data Infrastruktur Kota Bengkulu
+            </h2>
+            <p className="text-blue-200 text-lg md:text-xl mt-4">
+              Akses Peta Cepat Terhadap Peta dan Data Infrastruktur Kota
+              Bengkulu
             </p>
+
+            <button
+              onClick={() => navigate(`/map`)}
+              className="mt-8 bg-white text-blue-800 hover:bg-gray-100 px-8 py-3 rounded-xl font-semibold shadow-lg transition transform hover:scale-[1.03]"
+            >
+              ▶ Lihat Peta Interaktif
+            </button>
           </div>
+        </section>
+
+        {/* ===============================
+        SECTION VISI MISI
+    =============================== */}
+        <section className="max-w-7xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <h4 className="font-semibold mb-3">Kontak</h4>
-            <p className="text-sm">Jl. S. Parman No. 10, Kota Bengkulu</p>
-            <p className="text-sm">Email: info@bengkulutataruang.go.id</p>
-            <p className="text-sm">Telepon: (0736) 123456</p>
+            <h3 className="text-3xl font-bold text-blue-900 mb-4">
+              Sekilas Tentang Database Aset
+            </h3>
+            <p className="text-gray-700 leading-relaxed mb-6">
+              Sistem Basis Data Infrastruktur Kota Bengkulu ini dirancang untuk
+              memberikan transparansi, efisiensi, serta kemudahan akses terhadap
+              seluruh data yang berhubungan dengan pembangunan Infrastruktur Di
+              Kota Bengkulu.
+            </p>
+
+            <ul className="space-y-3 text-gray-700">
+              <li className="flex items-start">
+                <span className="text-blue-600 font-bold text-xl mr-2">✔</span>
+                Menyediakan Kebijakan Pembangunan Infrastruktur
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-600 font-bold text-xl mr-2">✔</span>
+                Mendukung pemetaan digital berbasis GIS seluruh wilayah kota.
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-600 font-bold text-xl mr-2">✔</span>
+                Menampilkan aset daerah secara detail dan transparan.
+              </li>
+            </ul>
+
+            <div className="mt-6">
+              <p className="font-semibold text-blue-800">Dedy Wahyudi</p>
+              <p className="text-sm text-gray-500">Walikota Bengkulu</p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-semibold mb-3">Ikuti Kami</h4>
-            <div className="flex space-x-3">
-              <a href="#" className="hover:text-blue-300">
-                Facebook
-              </a>
-              <a href="#" className="hover:text-blue-300">
-                Instagram
-              </a>
-              <a href="#" className="hover:text-blue-300">
-                YouTube
+
+          <div className="rounded-2xl overflow-hidden shadow-xl">
+            <iframe
+              width="560"
+              height="315"
+              src="https://www.youtube.com/embed/FTMJfvlfwxM?si=geLj5XX5XUPE-J_R"
+              title="YouTube video player"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen
+            ></iframe>
+          </div>
+        </section>
+
+        {/* ===============================
+        STATISTIK DATA ASET
+    =============================== */}
+        <section className="bg-blue-50 py-16">
+          <div className="max-w-7xl mx-auto px-6 text-center">
+            <h3 className="text-2xl md:text-3xl font-bold text-blue-900 mb-10">
+              Statistik Data Aset Kota Bengkulu
+            </h3>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-2xl shadow text-center">
+                <p className="text-4xl font-bold text-blue-700">124</p>
+                <p className="text-gray-600 text-sm mt-2">Gedung</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl shadow text-center">
+                <p className="text-4xl font-bold text-blue-700">812</p>
+                <p className="text-gray-600 text-sm mt-2">Jalan</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl shadow text-center">
+                <p className="text-4xl font-bold text-blue-700">57</p>
+                <p className="text-gray-600 text-sm mt-2">Jembatan</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl shadow text-center">
+                <p className="text-4xl font-bold text-blue-700">32</p>
+                <p className="text-gray-600 text-sm mt-2">Drainase</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===============================
+        LAYANAN SECTION
+    =============================== */}
+        <section id="layanan" className="bg-white py-16">
+          <div className="max-w-7xl mx-auto px-6 text-center">
+            <h3 className="text-3xl font-bold text-blue-900 mb-12">
+              PETA INTERAKTIF
+            </h3>
+
+            <div className="grid md:grid-cols-1 gap-8">
+              <div
+                onClick={() => navigate(`/map`)}
+                className="bg-blue-50 p-8 rounded-2xl shadow hover:shadow-xl transition"
+              >
+                <MapPin className="w-28 h-28 text-blue-700 mx-auto mb-5" />
+                <p className="text-lg text-gray-700 font-semibold">
+                  Eksplorasi peta aset daerah
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===============================
+        PRODUK HUKUM
+    =============================== */}
+        <section id="produk" className="bg-blue-50 py-16">
+          <div className="max-w-7xl mx-auto px-6 text-center">
+            <h3 className="text-3xl font-bold text-blue-900 mb-12">
+              Produk Hukum Terkait Infrastruktur
+            </h3>
+
+            <div className="grid md:grid-cols-4 gap-6">
+              {produkHukumData.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setOpenProduk(item)}
+                  className="cursor-pointer bg-white p-6 rounded-xl shadow hover:shadow-xl transition border hover:border-blue-300"
+                >
+                  <img
+                    src={item.thumbnail}
+                    alt={item.title}
+                    className="w-full h-32 object-cover rounded-lg mb-4"
+                  />
+                  <h4 className="font-semibold mb-2">{item.title}</h4>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                    {item.desc}
+                  </p>
+                  <span className="text-blue-600 text-sm font-semibold">
+                    Klik untuk detail →
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ===============================
+        GALERI FOTO
+    =============================== */}
+        <section id="galeri" className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-6 text-center">
+            <h3 className="text-3xl font-bold text-blue-900 mb-12">
+              Galeri Infrastruktur Kota Bengkulu
+            </h3>
+
+            <div className="grid md:grid-cols-4 gap-4">
+              {/* {galeriData.map((item) => (
+                <img
+                  key={item.id}
+                  onClick={() => setOpenGaleri(item)}
+                  src={item.image}
+                  alt={item.title}
+                  className="cursor-pointer rounded-xl shadow hover:opacity-90 transition hover:shadow-xl"
+                />
+              ))} */}
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================
+   MODAL PRODUK HUKUM
+======================================== */}
+        {openProduk && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl relative p-6 animate-fadeIn">
+              <button
+                className="absolute top-3 right-3 text-gray-700 hover:text-black"
+                onClick={() => setOpenProduk(null)}
+              >
+                ✖
+              </button>
+
+              <img
+                src={openProduk.thumbnail}
+                alt=""
+                className="w-full h-56 object-cover rounded-xl mb-4"
+              />
+
+              <h3 className="text-xl font-bold text-blue-900">
+                {openProduk.title}
+              </h3>
+              <p className="text-gray-700 mt-2 leading-relaxed">
+                {openProduk.desc}
+              </p>
+
+              <a
+                href={openProduk.fileUrl}
+                className="block mt-5 text-center bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-xl font-semibold"
+              >
+                📄 Buka Dokumen
               </a>
             </div>
           </div>
-        </div>
-        <div className="text-center text-blue-300 text-sm mt-8 border-t border-blue-800 pt-4">
-          © 2025 Pemerintah Kota Bengkulu. All rights reserved.
-        </div>
-      </footer>
+        )}
+
+        {/* ========================================
+   MODAL GALERI FOTO
+======================================== */}
+        {openGaleri && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl relative p-6 animate-fadeIn">
+              <button
+                className="absolute top-3 right-3 text-gray-700 hover:text-black"
+                onClick={() => setOpenGaleri(null)}
+              >
+                ✖
+              </button>
+
+              <img
+                src={openGaleri.image}
+                alt=""
+                className="w-full h-72 object-cover rounded-xl mb-4"
+              />
+
+              <h3 className="text-2xl font-bold text-blue-900">
+                {openGaleri.title}
+              </h3>
+              <p className="text-gray-700 mt-2">{openGaleri.desc}</p>
+            </div>
+          </div>
+        )}
+      </HomeLayout>
     </div>
   );
 }
