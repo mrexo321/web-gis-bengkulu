@@ -1,12 +1,12 @@
-import React, { useState } from "react";
-import { MapPin, FileText, Users } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import HomeLayout from "./layouts/HomeLayout";
 import { useQuery } from "@tanstack/react-query";
 import { layerService } from "./services/layerService";
 
 export default function Home() {
-  const { data: layer, isLoading } = useQuery({
+  const { data: layer } = useQuery({
     queryKey: ["layers"],
     queryFn: layerService.getAll,
   });
@@ -55,36 +55,6 @@ export default function Home() {
   ];
 
   // Dummy galeri
-  const galeriData = [
-    {
-      id: 1,
-      title: "Pemandangan Kota Bengkulu",
-      desc: "Panorama kota Bengkulu dari udara pada pagi hari.",
-      image:
-        "https://images.pexels.com/photos/1563256/pexels-photo-1563256.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    {
-      id: 2,
-      title: "Pantai Panjang",
-      desc: "Pantai ikonik Kota Bengkulu dengan garis pantai yang luas.",
-      image:
-        "https://images.pexels.com/photos/248797/pexels-photo-248797.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    {
-      id: 3,
-      title: "Alun-Alun Kota",
-      desc: "Area publik yang menjadi pusat kegiatan masyarakat Kota Bengkulu.",
-      image:
-        "https://images.pexels.com/photos/258045/pexels-photo-258045.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    {
-      id: 4,
-      title: "Jembatan Ikonik",
-      desc: "Infrastruktur kota yang menjadi lokasi favorit untuk fotografi.",
-      image:
-        "https://images.pexels.com/photos/462331/pexels-photo-462331.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-  ];
 
   return (
     <div className="font-sans text-gray-800">
@@ -155,10 +125,8 @@ export default function Home() {
               height="315"
               src="https://www.youtube.com/embed/FTMJfvlfwxM?si=geLj5XX5XUPE-J_R"
               title="YouTube video player"
-              frameborder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerpolicy="strict-origin-when-cross-origin"
-              allowfullscreen
+              allowFullScreen
             ></iframe>
           </div>
         </section>

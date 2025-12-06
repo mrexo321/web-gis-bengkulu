@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,6 +7,7 @@ import { Pencil, Plus, Trash, X } from "lucide-react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { layerService } from "../services/layerService";
 import { featureService } from "../services/featureService";
+
 import {
   MapContainer,
   TileLayer,
@@ -13,18 +16,17 @@ import {
   Polygon,
   useMapEvents,
 } from "react-leaflet";
-import L from "leaflet";
 
 const GeometryDrawer = ({ type, onChange }) => {
   const [points, setPoints] = useState([]);
 
   useMapEvents({
     click(e) {
-      const newPoint = [e.latlng.lng, e.latlng.lat]; // lng, lat
+      const newPoint = [e.latlng.lng, e.latlng.lat];
       const updated = [...points, newPoint];
 
       setPoints(updated);
-      onChange(updated); // send back to parent
+      onChange(updated);
     },
   });
 
@@ -53,21 +55,14 @@ const LayerDetailPage = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedFeatureId, setSelectedFeatureId] = useState(null);
 
-  // 🟢 Tambahkan state yang hilang
   const [geomType, setGeomType] = useState("Point");
   const [coordinates, setCoordinates] = useState([]);
 
-  // ============================
-  // GET LAYER
-  // ============================
   const { data: layer, isLoading: loadingLayer } = useQuery({
     queryKey: ["layer", id],
     queryFn: () => layerService.getSpecificLayer(id),
   });
 
-  // ============================
-  // GET ALL FEATURES
-  // ============================
   const { data: detailLayer } = useQuery({
     queryKey: ["details-layer", id],
     queryFn: () => layerService.getSpecificLayerDashboard(id),
@@ -75,54 +70,49 @@ const LayerDetailPage = () => {
 
   const features = detailLayer?.spatialItem || [];
 
-  console.log(detailLayer);
-
-  // ============================
-  // GET SINGLE FEATURE (edit)
-  // ============================
   const { data: selectedFeature, isLoading: featureLoading } = useQuery({
     queryKey: ["feature", id, selectedFeatureId],
     queryFn: () => featureService.getOne(id, selectedFeatureId),
     enabled: !!selectedFeatureId,
   });
 
-  // ============================
-  // ADD FEATURE
-  // ============================
+  // ADD NEW FEATURE
   const addMutation = useMutation({
-    mutationFn: (payload) => layerService.createDetail(id, payload),
+    mutationFn: async (payload: {
+      name: FormDataEntryValue | null;
+      properties: Record<string, any>;
+      geom: any;
+    }) => {
+      // sesuaikan dengan API kamu
+      return featureService.createDetail(layer.id, payload);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries(["details-layer", id]);
+      queryClient.invalidateQueries({ queryKey: ["details-layer", id] });
       setIsOpenAddModal(false);
       setCoordinates([]);
     },
   });
 
-  // ============================
   // UPDATE FEATURE
-  // ============================
-  const editMutation = useMutation({
-    mutationFn: ({ featureId, data }) =>
-      featureService.update(id, featureId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["details-layer", id]);
-      setEditModalOpen(false);
-    },
-  });
+  //   const editMutation = useMutation({
+  //     mutationFn: (payload) =>
+  //       featureService.update(id, payload.featureId, payload.data),
+  //     onSuccess: () => {
+  //       queryClient.invalidateQueries({ queryKey: ["details-layer", id] });
+  //       setEditModalOpen(false);
+  //     },
+  //   });
 
-  // ============================
   // DELETE FEATURE
-  // ============================
   const deleteMutation = useMutation({
-    mutationFn: (featureId) => featureService.delete(id, featureId),
+    mutationFn: async (fid: string) => {
+      return featureService.delete(id, fid);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries(["details-layer", id]);
+      queryClient.invalidateQueries({ queryKey: ["details-layer", id] });
     },
   });
 
-  // -----------------------------
-  // SUBMIT ADD FEATURE
-  // -----------------------------
   const handleSubmitAdd = (e) => {
     e.preventDefault();
     const form = new FormData(e.target);
@@ -142,51 +132,41 @@ const LayerDetailPage = () => {
       },
       geom: {
         type: geomType,
-        coordinates:
-          geomType === "Polygon"
-            ? [coordinates] // polygon harus wrap array
-            : coordinates,
+        coordinates: geomType === "Polygon" ? [coordinates] : coordinates,
       },
     };
 
     addMutation.mutate(payload);
   };
 
-  // -----------------------------
-  // EDIT (open)
-  // -----------------------------
   const handleEditClick = (fid) => {
     setSelectedFeatureId(fid);
     setEditModalOpen(true);
   };
 
-  // -----------------------------
-  // SUBMIT EDIT FEATURE
-  // -----------------------------
-  const handleSubmitEdit = (e) => {
-    e.preventDefault();
+  //   const handleSubmitEdit = (e) => {
+  //     e.preventDefault();
 
-    const form = new FormData(e.target);
-    const updated = {
-      name: form.get("name"),
-      properties: {},
-    };
+  //     const form = new FormData(e.target);
+  //     const updated = {
+  //       name: form.get("name"),
+  //       properties: {},
+  //     };
 
-    for (let [key, value] of form.entries()) {
-      if (key !== "name") updated.properties[key] = value;
-    }
+  //     for (let [key, value] of form.entries()) {
+  //       if (key !== "name") updated.properties[key] = value;
+  //     }
 
-    editMutation.mutate({
-      featureId: selectedFeatureId,
-      data: updated,
-    });
-  };
+  //     editMutation.mutate({
+  //       featureId: selectedFeatureId,
+  //       data: updated,
+  //     });
+  //   };
 
   if (loadingLayer) return <p>Loading...</p>;
 
   return (
     <DashboardLayout>
-      {/* ===================== TOP ===================== */}
       <div className="flex justify-between mb-6">
         <h1 className="text-2xl font-semibold">Detail Layer: {layer?.name}</h1>
 
@@ -202,7 +182,6 @@ const LayerDetailPage = () => {
         </button>
       </div>
 
-      {/* ===================== LIST FEATURES ===================== */}
       <div className="bg-white p-6 rounded-xl shadow">
         <h2 className="font-medium mb-4">Daftar Detail Layer</h2>
 
@@ -250,7 +229,6 @@ const LayerDetailPage = () => {
         )}
       </div>
 
-      {/* ===================== ADD MODAL ===================== */}
       {isOpenAddModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[9999]">
           <div className="bg-white w-full max-w-4xl rounded-xl p-5 relative shadow-xl overflow-y-auto max-h-[95vh]">
@@ -264,7 +242,6 @@ const LayerDetailPage = () => {
             <h2 className="text-xl font-semibold mb-4">Tambah Detail Layer</h2>
 
             <form onSubmit={handleSubmitAdd} className="space-y-5">
-              {/* NAME */}
               <div>
                 <label className="font-medium">Nama</label>
                 <input
@@ -274,7 +251,6 @@ const LayerDetailPage = () => {
                 />
               </div>
 
-              {/* PROPERTIES */}
               <div>
                 <label className="font-medium">Properties</label>
                 <div className="grid grid-cols-2 gap-2 mt-1">
@@ -299,14 +275,13 @@ const LayerDetailPage = () => {
                 </div>
               </div>
 
-              {/* GEOM TYPE */}
               <div>
                 <label className="font-medium">Tipe Geometry</label>
                 <select
                   value={geomType}
                   onChange={(e) => {
                     setGeomType(e.target.value);
-                    setCoordinates([]); // reset
+                    setCoordinates([]);
                   }}
                   className="w-full p-2 border rounded"
                 >
@@ -316,7 +291,6 @@ const LayerDetailPage = () => {
                 </select>
               </div>
 
-              {/* DRAW MAP */}
               <div>
                 <label className="font-medium">Gambar Geometry</label>
                 <div className="h-[350px] border rounded mt-1 overflow-hidden">
@@ -335,7 +309,6 @@ const LayerDetailPage = () => {
                 </div>
               </div>
 
-              {/* COORD PREVIEW */}
               <textarea
                 readOnly
                 className="w-full p-2 border rounded text-xs"
@@ -350,7 +323,6 @@ const LayerDetailPage = () => {
         </div>
       )}
 
-      {/* ===================== EDIT MODAL ===================== */}
       {editModalOpen && selectedFeature && !featureLoading && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[9999]">
           <div className="bg-white w-full max-w-3xl rounded-xl p-5 relative">
@@ -365,7 +337,7 @@ const LayerDetailPage = () => {
               Edit Feature: {selectedFeature.name}
             </h2>
 
-            <form onSubmit={handleSubmitEdit} className="space-y-3">
+            {/* <form onSubmit={handleSubmitEdit} className="space-y-3">
               <input
                 name="name"
                 defaultValue={selectedFeature.name}
@@ -378,7 +350,7 @@ const LayerDetailPage = () => {
                     <input
                       key={key}
                       name={key}
-                      defaultValue={value}
+                      //   defaultValue={value}
                       className="p-2 border rounded"
                     />
                   )
@@ -388,7 +360,7 @@ const LayerDetailPage = () => {
               <button className="bg-blue-600 text-white w-full py-2 rounded mt-2">
                 Simpan Perubahan
               </button>
-            </form>
+            </form> */}
           </div>
         </div>
       )}

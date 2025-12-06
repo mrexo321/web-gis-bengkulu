@@ -9,7 +9,7 @@ import MapPage from "./pages/Map/MapPage";
 import Infrastructure from "./pages/Infrastructure";
 import PublicationRules from "./pages/PublicationRules";
 import ManagementNews from "./pages/ManagementNews";
-import SliderManagement from "./pages/ManagementSlider";
+// import SliderManagement from "./pages/ManagementSlider";
 import News from "./views/news/News";
 import Services from "./views/layanan/Services";
 import LayerDetailPage from "./pages/LayerDetailPage";
@@ -37,7 +37,7 @@ export default function App() {
       <Route path="/dashboard/infrastructure" element={<Infrastructure />} />
       <Route path="/dashboard/public-rules" element={<PublicationRules />} />
       <Route path="/dashboard/news" element={<ManagementNews />} />
-      <Route path="/dashboard/slider" element={<SliderManagement />} />
+      {/* <Route path="/dashboard/slider" element={<SliderManagement />} /> */}
       <Route path="/help" element={<Help />} />
       <Route path="/settings" element={<Settings />} />
     </Routes>

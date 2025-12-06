@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // MapLayer.jsx
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,49 +33,72 @@ import { toast } from "sonner";
  * - Warna primer: green-600
  * - Logic unchanged; hanya layout + style diperbarui
  */
+interface Layer {
+  id: string;
+  name: string;
+  description?: string;
+  geometryType: "POINT" | "LINE" | "POLYGON";
+  color?: string;
+  iconUrl?: string;
+}
 
-const MapLayer = () => {
+interface GeoCacheEntry {
+  id: string;
+  color?: string;
+  name: string;
+  data: any;
+}
+
+interface UpdateLayerPayload {
+  id: string;
+  data: any;
+}
+
+// ======================
+// KOMPONEN
+// ======================
+
+const MapLayer: React.FC = () => {
   const navigate = useNavigate();
 
-  // state utama (logika tetap sama)
-  const [isOpenModal, setIsOpenModal] = useState(false);
-  const [activeLayers, setActiveLayers] = useState({});
-  const [editLayerId, setEditLayerId] = useState(null);
+  const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
+  const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({});
+  const [editLayerId, setEditLayerId] = useState<string | null>(null);
 
-  const [geoCache, setGeoCache] = useState({});
-  const [activeLayerData, setActiveLayerData] = useState([]);
-  const [queryFilter, setQueryFilter] = useState("");
+  const [geoCache, setGeoCache] = useState<Record<string, GeoCacheEntry>>({});
+  const [activeLayerData, setActiveLayerData] = useState<GeoCacheEntry[]>([]);
+  const [queryFilter, setQueryFilter] = useState<string>("");
 
-  // =======================================================
+  // ===========================
   // GET ALL LAYERS
-  // =======================================================
+  // ===========================
   const {
-    data: layerList,
+    data: layerList = [],
     isLoading,
     refetch: refetchLayer,
-  } = useQuery({
+  } = useQuery<Layer[]>({
     queryKey: ["layers"],
     queryFn: () => layerService.getAll(),
   });
 
-  // =======================================================
-  // FORM (react-hook-form + zod)
-  // =======================================================
-  const form = useForm({
+  // ===========================
+  // FORM
+  // ===========================
+  const form = useForm<any>({
     resolver: zodResolver(LayerSchema),
     defaultValues: {
       name: "",
       description: "",
       geometryType: "POLYGON",
-      color: "#16a34a", // green-600
+      color: "#16a34a",
       iconUrl: "",
     },
   });
 
-  // =======================================================
-  // TOGGLE LAYER (tetap pakai cache)
-  // =======================================================
-  const toggleLayer = async (layer) => {
+  // ===========================
+  // TOGGLE LAYER
+  // ===========================
+  const toggleLayer = async (layer: Layer) => {
     const isActive = activeLayers[layer.id];
 
     if (isActive) {
@@ -84,6 +108,7 @@ const MapLayer = () => {
     }
 
     let geo = geoCache[layer.id];
+
     if (!geo) {
       const res = await layerService.getSpecificLayer(layer.id);
       geo = {
@@ -96,14 +121,14 @@ const MapLayer = () => {
     }
 
     setActiveLayers((prev) => ({ ...prev, [layer.id]: true }));
-    setActiveLayerData((prev) => [...prev, geo]);
+    setActiveLayerData((prev) => [...prev, geo!]);
   };
 
-  // =======================================================
-  // MUTATIONS (create / update / delete)
-  // =======================================================
+  // ===========================
+  // MUTATIONS
+  // ===========================
   const createLayerMutation = useMutation({
-    mutationFn: (data) => layerService.createLayer(data),
+    mutationFn: (data: any) => layerService.createLayer(data),
     onSuccess: () => {
       setIsOpenModal(false);
       form.reset();
@@ -112,7 +137,8 @@ const MapLayer = () => {
   });
 
   const updateLayerMutation = useMutation({
-    mutationFn: ({ id, data }) => layerService.updateLayer(id, data),
+    mutationFn: (payload: UpdateLayerPayload) =>
+      layerService.updateLayer(payload.id, payload.data),
     onSuccess: () => {
       setIsOpenModal(false);
       setEditLayerId(null);
@@ -122,38 +148,37 @@ const MapLayer = () => {
   });
 
   const deleteLayerMutation = useMutation({
-    mutationFn: (id) => layerService.deleteLayer(id),
+    mutationFn: (id: string) => layerService.deleteLayer(id),
     onSuccess: () => {
       toast.success("Berhasil Menghapus Layer");
       refetchLayer();
     },
   });
 
-  // =======================================================
-  // HANDLER EDIT / DELETE
-  // =======================================================
-  const handleEdit = (layer) => {
+  // ===========================
+  // EDIT HANDLER
+  // ===========================
+  const handleEdit = (layer: Layer) => {
     setEditLayerId(layer.id);
     form.reset({
       name: layer.name,
       description: layer.description,
       geometryType: layer.geometryType,
-      color: layer.color || "#16a34a",
+      color: layer.color ?? "#16a34a",
       iconUrl: layer.iconUrl ?? "",
     });
     setIsOpenModal(true);
   };
 
-  const handleDelete = (id) => {
-    // Kamu menyebut ingin handle delete sendiri — tetap beri confirm
+  const handleDelete = (id: string) => {
     if (!confirm("Yakin ingin menghapus layer ini?")) return;
     deleteLayerMutation.mutate(id);
   };
 
-  // =======================================================
-  // SUBMIT FORM
-  // =======================================================
-  const onSubmit = (values) => {
+  // ===========================
+  // SUBMIT
+  // ===========================
+  const onSubmit = (values: any) => {
     const payload = {
       ...values,
       metadata: {
@@ -173,17 +198,16 @@ const MapLayer = () => {
     else createLayerMutation.mutate(payload);
   };
 
-  // =======================================================
-  // FILTERED LIST (search)
-  // =======================================================
+  // ===========================
+  // FILTER
+  // ===========================
   const filteredList = useMemo(() => {
-    if (!Array.isArray(layerList)) return [];
     const q = queryFilter.trim().toLowerCase();
     if (!q) return layerList;
     return layerList.filter(
       (l) =>
-        (l.name || "").toString().toLowerCase().includes(q) ||
-        (l.description || "").toString().toLowerCase().includes(q)
+        l.name.toLowerCase().includes(q) ||
+        (l.description ?? "").toLowerCase().includes(q)
     );
   }, [layerList, queryFilter]);
 

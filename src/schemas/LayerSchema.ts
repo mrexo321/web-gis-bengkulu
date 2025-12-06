@@ -8,8 +8,8 @@ export const LayerSchema = z.object({
 
   description: z.string().optional(),
 
-  geometryType: z.enum(["POINT", "LINE", "POLYGON"], {
-    required_error: "Tipe geometrinya wajib dipilih",
+  geometryType: z.enum(["POINT", "LINE", "POLYGON"]).refine((v) => v, {
+    message: "Tipe geometri wajib dipilih",
   }),
 
   color: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Format warna tidak valid"),

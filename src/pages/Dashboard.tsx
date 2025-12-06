@@ -1,72 +1,78 @@
 import React from "react";
-import {
-  Layers,
-  Globe,
-  User,
-  Database,
-  Map,
-  ArrowRight,
-  Activity,
-} from "lucide-react";
+import { Layers, Globe, Database, Activity, ArrowRight } from "lucide-react";
 import DashboardLayout from "../layouts/DashboardLayout";
+import { Bar } from "react-chartjs-2";
 import {
-  MapContainer,
-  TileLayer,
-  LayersControl,
-  Marker,
-  Popup,
-  Polygon,
-} from "react-leaflet";
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
 
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-
-// Fix Leaflet Icon
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend
+);
 
 const Dashboard = () => {
-  const polygonCoords = [
-    [
-      [-3.793, 102.263],
-      [-3.795, 102.267],
-      [-3.797, 102.262],
+  // =======================
+  // BAR CHART - Dataset per kategori
+  // =======================
+  const barData = {
+    labels: ["Tata Ruang", "Ekonomi", "Infrastruktur", "Lingkungan"],
+    datasets: [
+      {
+        label: "Jumlah Dataset",
+        data: [24, 15, 32, 18],
+        backgroundColor: ["#16a34a", "#3b82f6", "#f97316", "#8b5cf6"],
+        borderRadius: 8,
+      },
     ],
-  ];
+  };
+
+  const barOptions = {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 10 } },
+    },
+  };
+
+  // =======================
+  // LINE CHART - Upload per bulan
+  // =======================
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* ===================== */}
+      <div className="space-y-10">
         {/* HEADER */}
-        {/* ===================== */}
         <div className="flex justify-between items-center flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-semibold text-gray-800">
               Selamat Datang 👋
             </h1>
             <p className="text-gray-500 text-sm mt-1">
-              Pantau data GIS Anda dengan visualisasi yang lebih modern.
+              Kelola dan pantau semua data GIS Anda melalui dashboard modern
+              ini.
             </p>
           </div>
 
-          <button className="px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition shadow-sm">
+          {/* <button className="px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition shadow-sm">
             + Tambah Dataset
-          </button>
+          </button> */}
         </div>
 
-        {/* ===================== */}
-        {/* STATISTIK PREMIUM */}
-        {/* ===================== */}
-        <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* STATISTICS */}
+        <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[
             {
               icon: Database,
@@ -80,12 +86,6 @@ const Dashboard = () => {
               label: "Ukuran Data",
               value: "1.2 GB",
               color: "orange",
-            },
-            {
-              icon: User,
-              label: "Pengguna Aktif",
-              value: "34",
-              color: "purple",
             },
           ].map((item, i) => (
             <div
@@ -105,59 +105,17 @@ const Dashboard = () => {
           ))}
         </section>
 
-        {/* ===================== */}
-        {/* PETA + AKTIVITAS TERBARU */}
-        {/* ===================== */}
+        {/* CHARTS */}
         <section className="grid lg:grid-cols-3 gap-6">
-          {/* MAP SECTION */}
+          {/* Bar Chart */}
           <div className="col-span-2 bg-white border rounded-2xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                <Map className="w-5 h-5 text-green-600" /> Peta Utama
-              </h2>
-              <button className="text-sm text-green-700 flex items-center hover:underline">
-                Lihat Selengkapnya <ArrowRight className="w-4 h-4 ml-1" />
-              </button>
-            </div>
-
-            <div className="rounded-xl overflow-hidden border h-[380px]">
-              <MapContainer
-                center={[-3.793, 102.263]}
-                zoom={13}
-                scrollWheelZoom={false}
-                className="h-full w-full"
-              >
-                <LayersControl position="topright">
-                  <LayersControl.BaseLayer checked name="OpenStreetMap">
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  </LayersControl.BaseLayer>
-
-                  <LayersControl.BaseLayer name="Esri Satellite">
-                    <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
-                  </LayersControl.BaseLayer>
-
-                  <LayersControl.Overlay checked name="Titik Fasilitas">
-                    <Marker position={[-3.793, 102.263]}>
-                      <Popup>
-                        <b>Kantor Walikota</b>
-                        <br />
-                        Koordinat: -3.793, 102.263
-                      </Popup>
-                    </Marker>
-                  </LayersControl.Overlay>
-
-                  <LayersControl.Overlay name="Area Wilayah">
-                    <Polygon
-                      positions={polygonCoords}
-                      pathOptions={{ color: "green", fillOpacity: 0.25 }}
-                    />
-                  </LayersControl.Overlay>
-                </LayersControl>
-              </MapContainer>
-            </div>
+            <h2 className="font-semibold text-gray-800 mb-4">
+              Statistik Dataset per Kategori
+            </h2>
+            <Bar data={barData} options={barOptions} height={120} />
           </div>
 
-          {/* LATEST ACTIVITY */}
+          {/* Activity */}
           <div className="bg-white border rounded-2xl p-6 shadow-sm">
             <h2 className="font-semibold text-gray-800 flex items-center gap-2 mb-4">
               <Activity className="w-5 h-5 text-green-600" />
@@ -196,14 +154,12 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* ===================== */}
-        {/* TABLE SECTION */}
-        {/* ===================== */}
+        {/* TABLE */}
         <section className="bg-white border rounded-2xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-semibold text-gray-800">Data GIS Terbaru</h2>
-            <button className="text-sm text-green-700 hover:underline">
-              Lihat Semua
+            <h2 className="font-semibold text-gray-800">Update Terbaru</h2>
+            <button className="text-sm text-green-700 hover:underline flex items-center">
+              Lihat Semua <ArrowRight className="w-4 h-4 ml-1" />
             </button>
           </div>
 
@@ -211,11 +167,11 @@ const Dashboard = () => {
             <table className="w-full text-sm text-left border-t border-gray-100">
               <thead className="text-xs uppercase text-gray-600 bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3">Nama Dataset</th>
+                  <th className="px-4 py-3">Nama</th>
                   <th className="px-4 py-3">Kategori</th>
-                  <th className="px-4 py-3">Tipe Geometri</th>
-                  <th className="px-4 py-3">Tanggal Upload</th>
-                  <th className="px-4 py-3">Ukuran</th>
+                  <th className="px-4 py-3">Tipe</th>
+                  <th className="px-4 py-3">Tanggal Edit</th>
+                  <th className="px-4 py-3">Oleh</th>
                 </tr>
               </thead>
 
@@ -226,16 +182,16 @@ const Dashboard = () => {
                     "Tata Ruang",
                     "Polygon",
                     "11 Okt 2025",
-                    "2.4 MB",
+                    "Syafiul",
                   ],
                   [
                     "Jaringan Jalan Utama",
                     "Infrastruktur",
                     "Line",
                     "09 Okt 2025",
-                    "1.1 MB",
+                    "Ikhsan",
                   ],
-                  ["Sebaran UMKM", "Ekonomi", "Point", "07 Okt 2025", "530 KB"],
+                  ["Sebaran UMKM", "Ekonomi", "Point", "07 Okt 2025", "Admin"],
                 ].map((row, i) => (
                   <tr key={i} className="hover:bg-gray-50">
                     {row.map((cell, c) => (

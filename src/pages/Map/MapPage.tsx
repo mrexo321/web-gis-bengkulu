@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -97,7 +97,7 @@ const MapPage = () => {
     return null;
   };
 
-  const onEachFeature = (feature, layer, layerName) => {
+  const onEachFeature = (feature, layer) => {
     layer.on("click", () => {
       const geomType = feature.geometry.type;
 
@@ -165,9 +165,8 @@ const MapPage = () => {
   return (
     <div className="relative w-full h-screen bg-gray-100 overflow-hidden">
       <MapContainer
-        zoom={12.5}
         zoomControl={false}
-        center={center}
+        center={center as[number ,number]}
         zoom={12.5}
         className="w-full h-full z-0"
       >
@@ -187,7 +186,7 @@ const MapPage = () => {
               color: layer.color,
               weight: 2,
             }}
-            onEachFeature={(f, l) => onEachFeature(f, l, layer.name)}
+            onEachFeature={(f, l) => onEachFeature(f, l)}
           />
         ))}
       </MapContainer>

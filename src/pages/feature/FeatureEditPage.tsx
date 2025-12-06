@@ -1,79 +1,120 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useRef } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, Upload, ArrowLeft } from "lucide-react";
 import { attachmentService } from "../../services/attachmentService";
 import { featureService } from "../../services/featureService";
 
-// import featureService from "@/services/featureService";
-// import attachmentService from "@/services/attachmentService";
+// =============================
+// TYPE DEFINITIONS
+// =============================
+interface Attachment {
+  id: string;
+  filename: string;
+  url: string;
+}
+
+interface FeatureData {
+  id: string;
+  name: string;
+  properties: Record<string, any>;
+  attachments: Attachment[];
+}
+
+interface UpdatePayload {
+  name: FormDataEntryValue | null;
+  properties: Record<string, any>;
+}
 
 const FeatureEditPage = () => {
-  const { layerId, featureId } = useParams();
+  const { layerId = "", featureId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [uploadOpen, setUploadOpen] = useState(false);
-  const uploadInputRef = useRef(null);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // ============================================================
   // GET FEATURE DATA
   // ============================================================
-  const { data: feature, isLoading } = useQuery({
+  const { data: feature, isLoading } = useQuery<FeatureData>({
     queryKey: ["feature", layerId, featureId],
     queryFn: () => featureService.getOne(layerId, featureId),
   });
 
-  // ============================================================
-  // EDIT FEATURE FORM SUBMIT
-  // ============================================================
-  const editMutation = useMutation({
-    mutationFn: (data) => featureService.update(layerId, featureId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["feature", layerId, featureId]);
-      navigate(`/layers/${layerId}`);
-    },
-  });
+  // Jika belum ada data, hindari error undefined
+  if (isLoading) return <div className="p-4">Loading...</div>;
+  if (!feature) return <div className="p-4">Feature tidak ditemukan</div>;
 
-  const handleSubmit = (e) => {
+  // ============================================================
+  // EDIT MUTATION
+  // ============================================================
+  //   const editMutation = useMutation({
+  //     mutationFn: (data: UpdatePayload) =>
+  //       featureService.update(layerId, featureId, data),
+  //     onSuccess: () => {
+  //       queryClient.invalidateQueries({
+  //         queryKey: ["feature", layerId, featureId],
+  //       });
+  //       navigate(`/layers/${layerId}`);
+  //     },
+  //   });
+
+  // ============================================================
+  // HANDLE FORM SUBMIT
+  // ============================================================
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const form = new FormData(e.target);
-    const payload = {
+    const form = new FormData(e.currentTarget);
+    const payload: UpdatePayload = {
       name: form.get("name"),
       properties: {},
     };
 
-    for (let [key, value] of form.entries()) {
+    form.forEach((value, key) => {
       if (key !== "name") {
         payload.properties[key] = value;
       }
-    }
+    });
 
-    editMutation.mutate(payload);
+    // editMutation.mutate(payload);
   };
 
   // ============================================================
-  // UPLOAD ATTACHMENT MUTATION
+  // UPLOAD ATTACHMENT
   // ============================================================
   const uploadMutation = useMutation({
-    mutationFn: () =>
-      attachmentService.addAttachment(layerId, featureId, selectedFile),
+    mutationFn: () => {
+      const formData = new FormData();
+      formData.append("file", selectedFile as File);
+
+      return attachmentService.addAttachment(layerId, featureId, formData);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries(["feature", layerId, featureId]);
+      queryClient.invalidateQueries({
+        queryKey: ["feature", layerId, featureId],
+      });
       setUploadOpen(false);
       setSelectedFile(null);
     },
   });
+
+  const handleUploadInput = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setSelectedFile(file);
+  };
 
   const handleUploadSubmit = () => {
     if (!selectedFile) return;
     uploadMutation.mutate();
   };
 
-  if (isLoading) return <div className="p-4">Loading...</div>;
-
+  // ============================================================
+  // RENDER
+  // ============================================================
   return (
     <div className="p-4 max-w-3xl mx-auto">
       {/* HEADER */}
@@ -109,7 +150,7 @@ const FeatureEditPage = () => {
               <label className="text-xs font-medium">{key}</label>
               <input
                 name={key}
-                defaultValue={value}
+                defaultValue={String(value)}
                 className="w-full p-2 border rounded"
               />
             </div>
@@ -118,9 +159,9 @@ const FeatureEditPage = () => {
 
         <button
           className="bg-blue-600 text-white w-full py-2 rounded mt-3"
-          disabled={editMutation.isPending}
+          //   disabled={editMutation.isPending}
         >
-          {editMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+          {/* {editMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"} */}
         </button>
       </form>
 
@@ -141,7 +182,7 @@ const FeatureEditPage = () => {
         )}
 
         <div className="space-y-2">
-          {feature.attachments?.map((att) => (
+          {feature.attachments?.map((att: Attachment) => (
             <div
               key={att.id}
               className="border p-3 rounded flex justify-between items-center"
@@ -157,16 +198,12 @@ const FeatureEditPage = () => {
                   Buka File
                 </a>
               </div>
-
-              {/* DELETE HANDLED BY YOU */}
             </div>
           ))}
         </div>
       </div>
 
-      {/* ============================================================
-          UPLOAD MODAL
-      ============================================================ */}
+      {/* UPLOAD MODAL */}
       {uploadOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[9999]">
           <div className="bg-white w-full max-w-md rounded-xl p-5 relative">
@@ -182,7 +219,7 @@ const FeatureEditPage = () => {
             <input
               type="file"
               ref={uploadInputRef}
-              onChange={(e) => setSelectedFile(e.target.files[0])}
+              onChange={handleUploadInput}
               className="border w-full p-2 rounded"
             />
 
