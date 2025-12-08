@@ -13,9 +13,11 @@ const Footer = () => {
         </div>
         <div>
           <h4 className="font-semibold mb-3">Kontak</h4>
-          <p className="text-sm">Jl. S. Parman No. 10, Kota Bengkulu</p>
-          <p className="text-sm">Email: info@bengkulutataruang.go.id</p>
-          <p className="text-sm">Telepon: (0736) 123456</p>
+          <p className="text-sm">
+            Jl. Soeprapto Dalam , Betungan , Kec Selebar
+          </p>
+          <p className="text-sm">Email: dpupr.bengkulukota@gmail.com</p>
+          <p className="text-sm">Telepon: 0736 3877</p>
         </div>
         <div>
           <h4 className="font-semibold mb-3">Ikuti Kami</h4>

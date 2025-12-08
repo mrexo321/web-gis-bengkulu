@@ -13,9 +13,8 @@ const datasetDummy = [
     kondisi: "Baik",
     tahunDibuat: 2022,
     tahunDiperbaiki: 2025,
-    gambar: "https://images.pexels.com/photos/267507/pexels-photo-267507.jpeg",
-    deskripsi:
-      "Data Aset batas wilayah administratif yang digunakan sebagai dasar peta GIS regional.",
+    gambar: "https://images.pexels.com/photos/236089/pexels-photo-236089.jpeg",
+    deskripsi: "Data Aset Jaringan Energi Di Kota Bengkulu",
   },
   {
     id: 2,

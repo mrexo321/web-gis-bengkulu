@@ -21,8 +21,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/news" element={<News />} />
-      <Route path="/services" element={<Services />} />
+      {/* <Route path="/news" element={<News />} /> */}
+      {/* <Route path="/services" element={<Services />} /> */}
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/gis-upload" element={<GISUpload />} />

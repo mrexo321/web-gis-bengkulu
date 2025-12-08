@@ -116,7 +116,7 @@ const Help = () => {
               <Phone className="text-green-700" size={28} />
               <div>
                 <p className="font-medium text-gray-800">Telepon</p>
-                <p className="text-gray-600 text-sm">+62 812 0000 1234</p>
+                <p className="text-gray-600 text-sm">0736 3877</p>
               </div>
             </div>
 
@@ -125,7 +125,7 @@ const Help = () => {
               <div>
                 <p className="font-medium text-gray-800">Email</p>
                 <p className="text-gray-600 text-sm">
-                  support.tataruang@bengkulu.go.id
+                  dpupr.bengkulukota@gmail.com
                 </p>
               </div>
             </div>
