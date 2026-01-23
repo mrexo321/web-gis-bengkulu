@@ -223,7 +223,7 @@ const MapLayer: React.FC = () => {
           },
           z_coordinate_resolution: 0.0001,
           xy_coordinate_resolution: 0.0000000000025,
-        })
+        }),
       );
 
       createLayerMutation.mutate(formData);
@@ -239,7 +239,7 @@ const MapLayer: React.FC = () => {
     return layerList.filter(
       (l) =>
         l.name.toLowerCase().includes(q) ||
-        (l.description ?? "").toLowerCase().includes(q)
+        (l.description ?? "").toLowerCase().includes(q),
     );
   }, [layerList, queryFilter]);
 
@@ -416,7 +416,7 @@ const MapLayer: React.FC = () => {
                       let geo = geoCache[layer.id];
                       if (!geo) {
                         const res = await layerService.getSpecificLayer(
-                          layer.id
+                          layer.id,
                         );
                         geo = {
                           id: layer.id,
@@ -628,7 +628,7 @@ const MapLayer: React.FC = () => {
                           {...form.register("category")}
                           className="w-full py-2 px-1 rounded-md border"
                         >
-                          {categories.map((category, key) => (
+                          {categories?.map((category, key) => (
                             <>
                               <option value={category.value}>
                                 {category.name}

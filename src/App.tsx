@@ -12,9 +12,16 @@ import Help from "./pages/help/Help";
 import Settings from "./pages/settings/Settings";
 import ProtectedRoute from "./routes/ProtectedRoutes";
 import NotFound from "./components/NotFound";
+import LayerSchemaPage from "./pages/layer/LayerSchemaPage";
+import LayerSchemaAddPage from "./pages/layer/LayerSchemaAddPage";
+import UserManagement from "./pages/user/UserManagement";
+import LayerSchemaUpdatePage from "./pages/layer/LayerSchemaUpdatePage";
+import LayerSchemaDetailPage from "./pages/layer/LayerSchemaDetailPage";
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
       <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/map-layer" element={<MapLayer />} />
@@ -24,11 +31,24 @@ export default function App() {
           element={<LayerDetailPage />}
         />
         <Route path="/dashboard/report" element={<ReportLaporan />} />
+        <Route path="/dashboard/layer-schema" element={<LayerSchemaPage />} />
+        <Route
+          path="/dashboard/layer-schema/create"
+          element={<LayerSchemaAddPage />}
+        />
+        <Route
+          path="/dashboard/layer-schema/:id/update"
+          element={<LayerSchemaUpdatePage />}
+        />
+        <Route
+          path="/dashboard/layer-schema/:id/detail"
+          element={<LayerSchemaDetailPage />}
+        />
+        <Route path="/dashboard/user-management" element={<UserManagement />} />
         <Route path="/dashboard/help" element={<Help />} />
         <Route path="/dashboard/settings" element={<Settings />} />
       </Route>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
+
       {/* <Route path="/news" element={<News />} /> */}
       {/* <Route path="/services" element={<Services />} /> */}
       {/* <Route path="/gis-upload" element={<GISUpload />} /> */}

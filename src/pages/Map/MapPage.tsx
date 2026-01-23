@@ -110,186 +110,88 @@ const MapPage = () => {
     return null;
   };
 
+  const mapPropertiesBySchema = (properties = {}, schema = []) => {
+    return schema
+      .filter((field) => field.is_visible_public)
+      .map((field) => ({
+        key: field.key,
+        label: field.label,
+        value:
+          properties[field.key] !== null && properties[field.key] !== undefined
+            ? properties[field.key]
+            : "-",
+        type: field.type,
+      }));
+  };
+
   const onEachFeature = (feature, layer) => {
     layer.on("click", () => {
       const geomType = feature.geometry.type;
-      // Reset highlight sebelumnya
+
+      // ===============================
+      // RESET HIGHLIGHT SEBELUMNYA
+      // ===============================
       if (highlightedLayerRef.current) {
-        highlightedLayerRef.current.setStyle(defaultLineStyle);
+        if (highlightedLayerRef.current.setStyle) {
+          highlightedLayerRef.current.setStyle(defaultLineStyle);
+        }
       }
 
-      // Highlight layer ini
-      layer.setStyle(highlightLineStyle);
-      layer.bringToFront(); // biar paling atas
-      highlightedLayerRef.current = layer;
+      // ===============================
+      // HIGHLIGHT CURRENT LAYER
+      // ===============================
+      if (layer.setStyle) {
+        // Line / Polygon
+        layer.setStyle(highlightLineStyle);
+        layer.bringToFront();
+        highlightedLayerRef.current = layer;
+      } else {
+        // Point (Marker)
+        highlightedLayerRef.current = layer;
+      }
 
-      // Tentukan koordinat point-nya
-      let coords = null;
+      // ===============================
+      // KOORDINAT
+      // ===============================
+      let coords;
       if (geomType === "Point") {
         coords = layer.getLatLng();
       } else {
-        // Ambil pusat geometrinya
-        const bounds = layer.getBounds();
-        const center = bounds.getCenter();
-        coords = { lat: center.lat, lng: center.lng };
+        coords = layer.getBounds().getCenter();
       }
 
-      // Standarisasi properti deskriptif
-      const p = feature.properties || {};
+      // ===============================
+      // DATA
+      // ===============================
+      const properties = feature.properties || {};
+      const schema = feature.schema || [];
+      const attachments = feature.attachments || [];
 
-      console.log("on each feature", p);
+      const mappedProperties = mapPropertiesBySchema(properties, schema);
 
-      let detail = {};
+      const detail = {
+        id: feature.id,
+        title:
+          properties.nama ||
+          properties.name ||
+          feature.name ||
+          "Detail Feature",
 
-      if (p.type == "Bangunan Gedung") {
-        detail = {
-          id: feature.id || "-",
-          name: p.namaBangunan || p.name || "-",
-          description:
-            p.DESKRIPSI || p.DESCRIPTION || p.REMARK || "Bangunan Gedung",
-          year: p.tahunPengadaan || p.TAHUN || "2024",
-          regNumber: p.nomorRegister || p.NO_REG || "-",
-          assetCode: p.KODE_ASET || p.ASET || "-",
-          condition: p.KONDISI || p.CONDITION || "Aktif",
-          maintenanceBy:
-            p.MAINTENANCE || p.DIPELIHARA_OLEH || "Dinas PUPR Kota Bengkulu",
+        geometryType: geomType,
+        coords,
+        attachments,
 
-          category:
-            geomType === "Polygon"
-              ? "Point"
-              : geomType === "MultiLineString"
-              ? "Line"
-              : "Polygon",
+        meta: mappedProperties,
+        rawProperties: properties,
+      };
 
-          meta: {
-            jenisBangunan: p.jenisBangunan || "-",
-            luasBangunan: p.luasBangunan || "-",
-            lokasi: p.lokasi || "-",
-            geometryType: geomType,
-            ...p,
-          },
-
-          attachments: feature.attachments || [],
-          coords,
-        };
-        setSelectedPoint(detail);
-      } else if (p.type === "Jalan") {
-        if (highlightedLayerRef.current) {
-          highlightedLayerRef.current.setStyle(defaultLineStyle);
-        }
-
-        // Highlight jalan utama
-        layer.setStyle(highlightLineStyle);
-        highlightedLayerRef.current = layer;
-
-        // Ambil titik awal & akhir
-
-        const detail = {
-          id: feature.id || "-",
-          name: p.nama || p.name || "Nama Jalan",
-          description: p.fungsi || "Data jalan Kota Bengkulu",
-          year: p.tahunPengadaan || p.TAHUN || "-",
-          regNumber: p.noRegister || p.NO_REG || "-",
-          assetCode: p.nomorRuas || "-",
-          condition: p.KONDISI || p.CONDITION || "-",
-          maintenanceBy: p.sumberData || "Dinas PUPR Kota Bengkulu",
-          category: "Line",
-          meta: {
-            geometryType: geomType,
-            ...p,
-          },
-          coords: layer.getBounds().getCenter(),
-        };
-        setSelectedPoint(detail);
-      } else if (p.type === "Jembatan") {
-        detail = {
-          id: feature.id || "-",
-          name: p.name || `Jembatan di ${p.lokasi || "-"}`,
-          description: p.fungsiJalanDihubungkan || "Jembatan penghubung jalan",
-          year: p.tahunPengadaan || "-",
-          regNumber: p.nomorRegister || "-",
-          assetCode: `JBT-${feature.id || "000"}`, // bisa diubah jika ada kode aset resmi
-          condition: p.KONDISI || p.CONDITION || "-",
-          maintenanceBy: p.sumberData || "Dinas PUPR Kota Bengkulu",
-
-          category: "Point", // biasanya jembatan = line
-
-          meta: {
-            lokasi: p.lokasi || "-",
-            fungsiJalanDihubungkan: p.fungsiJalanDihubungkan || "-",
-            tahunPerbaikanTerakhir: p.tahunPerbaikanTerakhir || "-",
-            geometryType: geomType,
-            ...p,
-          },
-
-          attachments: feature.attachments || [],
-          coords,
-        };
-        setSelectedPoint(detail);
-      } else if (
-        geomType === "Polygon" ||
-        geomType === "MultiPolygon" ||
-        p.type === "Zona"
-      ) {
-        detail = {
-          id: feature.id || "-",
-
-          name: p.NAMOBJ || "Zona",
-
-          description:
-            p.REMARK && p.REMARK !== "Tidak Ada" ? p.REMARK : "Zona RDTR",
-
-          year: "-", // data zona umumnya tidak punya tahun pengadaan
-
-          regNumber: p.KODZON || "-",
-
-          assetCode: p.KODSZN || "-",
-
-          condition: "Aktif",
-
-          maintenanceBy: "Pemerintah Daerah",
-
-          category: "Polygon",
-
-          meta: {
-            kodeZona: p.KODZON || "-",
-            subZona: p.KODSZN || "-",
-            blok: p.KODBLK || "-",
-
-            namaZona: p.NAMZON || "-",
-            namaSubZona: p.NAMSZN || "-",
-
-            luasHa: p.LUASHA || 0,
-
-            kecamatan: p.WADMKC || "-",
-            kelurahan: p.WADMKD || "-",
-            kota: p.WADMKK || "-",
-            provinsi: p.WADMPR || "-",
-
-            peruntukan: p.JNSRPR || "-",
-            kawasanStrategis: p.KKOP_1 || "-",
-            kawasanRawanBencana: p.KRB_03 || "-",
-            kawasanLindung: p.LP2B_2 || "-",
-
-            geometryType: geomType,
-            ...p,
-          },
-
-          attachments: feature.attachments || [],
-
-          coords,
-        };
-
-        setSelectedPoint(detail);
-      }
-
-      console.log(selectedPoint);
+      setSelectedPoint(detail);
     });
   };
 
   const filteredLayers = useMemo(() => {
     return layerList.filter((l) =>
-      l.key.toLowerCase().includes(searchTerm.toLowerCase())
+      l.key.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [searchTerm, layerList]);
 
@@ -351,12 +253,18 @@ const MapPage = () => {
         {geoData?.map((layer) => (
           <GeoJSON
             key={layer.id}
-            data={layer.data}
+            data={{
+              ...layer.data,
+              features: layer.data.features.map((f) => ({
+                ...f,
+                schema: layer.data.schema, // ⬅️ INJECT SCHEMA
+              })),
+            }}
             style={{
               color: layer.color,
               weight: 3,
             }}
-            onEachFeature={(f, l) => onEachFeature(f, l)}
+            onEachFeature={onEachFeature}
           />
         ))}
       </MapContainer>
@@ -468,7 +376,9 @@ const MapPage = () => {
           <div className="w-[380px] sm:w-[430px] h-full bg-white shadow-2xl animate-slideLeft overflow-y-auto">
             {/* HEADER */}
             <div className="px-5 py-4 bg-emerald-700 text-white flex justify-between items-center shadow">
-              <h2 className="text-lg font-semibold truncate">Detail Feature</h2>
+              <h2 className="text-lg font-semibold truncate">
+                {selectedPoint.title}
+              </h2>
               <button
                 className="text-xl font-bold"
                 onClick={() => setSelectedPoint(null)}
@@ -479,151 +389,46 @@ const MapPage = () => {
 
             <div className="p-5 space-y-6">
               {/* =============================
-             1. TIPE FEATURE
-        ============================== */}
-              {/* <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
-                <h3 className="font-semibold text-emerald-700 mb-1">
-                  🧭 Tipe Geometri
-                </h3>
-                <p className="text-gray-700 text-sm">
-                  {selectedPoint.meta?.geometryType || "Point"}
-                </p>
-              </div> */}
-
-              {/* =============================
-             2. INFORMASI UTAMA
+            INFORMASI DETAIL (DINAMIS)
         ============================== */}
               <div>
-                <h3 className="font-semibold text-2xl text-gray-700 mb-2">
-                  📍 Informasi Utama
+                <h3 className="font-semibold text-xl text-gray-700 mb-3">
+                  🗂 Informasi Detail
                 </h3>
-                <div className="bg-gray-50 border rounded-xl p-4 space-y-2 text-sm">
-                  <p>
-                    <span className="font-medium">Nama:</span>{" "}
-                    {selectedPoint.name}
-                  </p>
-                  <p>
-                    <span className="font-medium">Deskripsi:</span>{" "}
-                    {selectedPoint.description}
-                  </p>
 
-                  <p>
-                    <span className="font-medium">Tahun Dibuat:</span>{" "}
-                    {selectedPoint.year}
-                  </p>
-                  <p>
-                    <span className="font-medium">Nomor Registrasi:</span>{" "}
-                    {selectedPoint.regNumber}
-                  </p>
-                  <p>
-                    <span className="font-medium">Kode Aset:</span>{" "}
-                    {selectedPoint.assetCode}
-                  </p>
-                  <p>
-                    <span className="font-medium">Kondisi:</span>{" "}
-                    {selectedPoint.condition}
-                  </p>
-                  <p>
-                    <span className="font-medium">Sumber Data:</span>{" "}
-                    {selectedPoint.maintenanceBy}
-                  </p>
-
-                  {/* <p>
-                    <span className="font-medium">Kategori Geometri:</span>{" "}
-                    {selectedPoint.category}
-                  </p> */}
+                <div className="bg-white border rounded-xl divide-y text-sm">
+                  {selectedPoint.meta.length > 0 ? (
+                    selectedPoint.meta.map((item) => (
+                      <div
+                        key={item.key}
+                        className="flex justify-between gap-4 px-4 py-2"
+                      >
+                        <span className="font-medium text-gray-600">
+                          {item.label}
+                        </span>
+                        <span className="text-gray-800 text-right">
+                          {item.value !== null && item.value !== ""
+                            ? String(item.value)
+                            : "-"}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="p-4 text-gray-500 italic">
+                      Tidak ada data properti.
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* =============================
-             3. DETAIL PROPERTI (AUTO RENDER)
-        ============================== */}
-              {/* <div>
-                <h3 className="font-semibold text-gray-700 mb-2">
-                  🗂 Semua Properti
-                </h3>
-
-                <div className="bg-white border rounded-xl p-4 space-y-3 text-sm">
-                  {Object.entries(selectedPoint.meta || {}).map(([k, v]) => (
-                    <div key={k} className="flex justify-between border-b pb-1">
-                      <span className="font-medium text-gray-600">{k}</span>
-                      <span className="text-gray-800">{String(v)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div> */}
-
-              {/* =============================
-   4. INFORMASI BERBEDA BERDASARKAN TIPE
-============================== */}
-              {selectedPoint.meta?.type && (
-                <div>
-                  <h3 className="font-semibold text-2xl text-gray-700 mb-2">
-                    📐 Detail Berdasarkan Tipe
-                  </h3>
-
-                  {/* === JALAN === */}
-                  {selectedPoint.meta.type === "Jalan" && (
-                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-sm space-y-2">
-                      <p>
-                        <span className="font-medium">Panjang Jalan:</span>{" "}
-                        {selectedPoint.meta.panjangJalan || "-"} m
-                      </p>
-                      <p>
-                        <span className="font-medium">Fungsi Jalan:</span>{" "}
-                        {selectedPoint.meta.fungsi || "-"}
-                      </p>
-                      <p>
-                        <span className="font-medium">Paving / Aspal:</span>{" "}
-                        {selectedPoint.meta.bahan || "-"}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* === BANGUNAN GEDUNG === */}
-                  {selectedPoint.meta.type === "Bangunan Gedung" && (
-                    <div className="bg-purple-50 border border-purple-200 p-4 rounded-xl text-sm space-y-2">
-                      <p>
-                        <span className="font-medium">Jenis Bangunan:</span>{" "}
-                        {selectedPoint.meta.jenisBangunan || "-"}
-                      </p>
-                      <p>
-                        <span className="font-medium">Luas Bangunan:</span>{" "}
-                        {selectedPoint.meta.luasBangunan || "-"} m2
-                      </p>
-                      <p>
-                        <span className="font-medium">Lokasi:</span>{" "}
-                        {selectedPoint.meta.lokasi || "-"}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* === JEMBATAN === */}
-                  {selectedPoint.meta.type === "Jembatan" && (
-                    <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-sm space-y-2">
-                      <p>
-                        <span className="font-medium">Lokasi:</span>{" "}
-                        {selectedPoint.meta.lokasi || "-"}
-                      </p>
-                      <p>
-                        <span className="font-medium">
-                          Fungsi Jalan yang Dihubungkan:
-                        </span>{" "}
-                        {selectedPoint.meta.fungsiJalanDihubungkan || "-"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* =============================
-             5. KOORDINAT
+            KOORDINAT
         ============================== */}
               <div>
-                <h3 className="font-semibold text-2xl text-gray-700 mb-2">
+                <h3 className="font-semibold text-xl text-gray-700 mb-2">
                   📍 Koordinat
                 </h3>
-                <div className="bg-gray-50 border rounded-xl p-4 text-sm space-y-2">
+                <div className="bg-gray-50 border rounded-xl p-4 text-sm space-y-1">
                   <p>
                     <span className="font-medium">Latitude:</span>{" "}
                     {selectedPoint.coords.lat}
@@ -636,10 +441,10 @@ const MapPage = () => {
               </div>
 
               {/* =============================
-             6. SLIDER GAMBAR
+            LAMPIRAN GAMBAR
         ============================== */}
               <div>
-                <h3 className="font-semibold text-gray-700 mb-2">
+                <h3 className="font-semibold text-xl text-gray-700 mb-2">
                   🖼 Lampiran Foto
                 </h3>
 
@@ -654,13 +459,12 @@ const MapPage = () => {
                         className="w-full h-56 object-cover rounded-xl shadow"
                       />
 
-                      {/* Prev */}
                       <button
                         onClick={() =>
-                          setSlideIndex((prev) =>
-                            prev === 0
+                          setSlideIndex((i) =>
+                            i === 0
                               ? selectedPoint.attachments.length - 1
-                              : prev - 1
+                              : i - 1,
                           )
                         }
                         className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow"
@@ -668,13 +472,12 @@ const MapPage = () => {
                         ◀
                       </button>
 
-                      {/* Next */}
                       <button
                         onClick={() =>
-                          setSlideIndex((prev) =>
-                            prev === selectedPoint.attachments.length - 1
+                          setSlideIndex((i) =>
+                            i === selectedPoint.attachments.length - 1
                               ? 0
-                              : prev + 1
+                              : i + 1,
                           )
                         }
                         className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow"
@@ -683,17 +486,16 @@ const MapPage = () => {
                       </button>
                     </div>
 
-                    {/* Dots */}
                     <div className="flex justify-center mt-3 space-x-1">
                       {selectedPoint.attachments.map((_, i) => (
                         <div
                           key={i}
-                          className={`h-2.5 w-2.5 rounded-full cursor-pointer ${
+                          onClick={() => setSlideIndex(i)}
+                          className={`h-2.5 w-2.5 rounded-full cursor-pointer transition ${
                             slideIndex === i
                               ? "bg-emerald-600 scale-110"
                               : "bg-gray-300"
                           }`}
-                          onClick={() => setSlideIndex(i)}
                         />
                       ))}
                     </div>

@@ -17,10 +17,10 @@ const ReportLaporan = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(50);
 
-  const { data: allItems } = useQuery({
-    queryKey: ["all-report-items"],
-    queryFn: reportService.getAllForFilter,
-  });
+  //   const { data: allItems } = useQuery({
+  //     queryKey: ["all-report-items"],
+  //     queryFn: reportService.getAllForFilter,
+  //   });
 
   // FETCH DATA
   const { data, isLoading } = useQuery({
@@ -55,8 +55,8 @@ const ReportLaporan = () => {
   const [detailItem, setDetailItem] = useState(null);
 
   const extractUnique = (key) => {
-    if (!allItems) return [];
-    return [...new Set(allItems.map((item) => item[key]).filter(Boolean))];
+    if (!items) return [];
+    return [...new Set(items.map((item) => item[key]).filter(Boolean))];
   };
 
   console.log("detail item", detailItem);

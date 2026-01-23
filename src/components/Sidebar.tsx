@@ -1,4 +1,11 @@
-import { FileText, HelpCircle, Home, Map, Settings } from "lucide-react";
+import {
+  FileText,
+  HelpCircle,
+  Home,
+  Layers,
+  Map,
+  Settings,
+} from "lucide-react";
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -10,6 +17,12 @@ const Sidebar = () => {
     // { name: "Upload Data GIS", icon: Layers, path: "/gis-upload" },
     { name: "Peta & Layer", icon: Map, path: "/dashboard/map-layer" },
     { name: "Laporan Data Aset", icon: FileText, path: "/dashboard/report" },
+    { name: "Layer Schema", icon: Layers, path: "/dashboard/layer-schema" },
+    {
+      name: "Manajemen User",
+      icon: Layers,
+      path: "/dashboard/user-management",
+    },
   ];
 
   const footerLinks = [
