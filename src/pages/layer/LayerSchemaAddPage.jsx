@@ -48,6 +48,8 @@ const LayerSchemaAddPage = () => {
     mutationFn: (payload) => layerService.createLayerSchema(payload),
   });
 
+  console.log(categories);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({
@@ -89,7 +91,7 @@ const LayerSchemaAddPage = () => {
     mutation.mutate(form);
   };
 
-  console.log(form.definition);
+  console.log(categories);
 
   return (
     <DashboardLayout>
